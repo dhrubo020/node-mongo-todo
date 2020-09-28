@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Todo List</title>
+</head>
+<body>
+    <h1>Todo List</h1>
+    <div class="m-3 p-4">
+        <div class="row ">
+            <div class="col-md-6 border p-2">
+                <div>
+                    <h5>Add a new todo</h5>
+                    <form onsubmit="postData()">
+                        <input id="title" class="form-control" type="text" placeholder="Title" required />
+                      <br/>  <input id="details" class="form-control" type="text" placeholder="Details" required />
+                      <br/>  <button class="btn btn-secondary" type="submit">Add</button>
+                    </form>
+                </div>
+                <hr>
+                <div id="displayItems" style="height: 250px; overflow: auto;">
+
+                </div>
+            </div>
+            <div class="col-md-6 border p-2">
+                <div id="update">
+
+                </div>
+                <br>
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        const getAllData=()=>{ //----------------------------------------------------------- get all data
+            fetch('/getAllData')
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                const displayItems = document.getElementById('displayItems')
+                displayItems.innerHTML = ''
+                data.forEach(element => {
+                    const p = document.createElement('p')
+                    p.innerHTML =
+                        `
+                        <h6><strong>${element.title}</strong></h6>
+                            <span>${element.details}</span>
+                        <button onclick="loadToUpdate('${element._id}')">update</button>
+                        <button onclick="deleteData(event, '${element._id}')">delete</button>
+                        `
+                    displayItems.appendChild(p)
+                });
+            })
+        }
+        getAllData();
+
+        const postData=()=>{ // ------------------------------------------------------------ post data
+            const title = document.getElementById("title").value;
+            const details = document.getElementById("details").value;
+            const data = {title: title, details: details}
+            console.log(data)
+            fetch('/postData',{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => console.log("data added", data))
+        }
+
+        const loadToUpdate=(id)=>{ // --------------------------------------------------- load to update
+            
+            fetch(`/loadToUpdate/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                const update = document.getElementById("update")
+                const updateForm = 
+                    `
+                    <h6>Update the todo - "${data.title}"</h6>
+                    <form onsubmit="updateData(event, '${data._id}')">
+                        Title : <input class="form-control" type="text" value="${data.title}" id="editTitle" required />
+                        <br/>
+                        Details : <input class="form-control" type="text" value="${data.details}" id="editDetails" required />
+                        <br/>
+                        <button type="submit">Update</button>
+                    </form>
+                    `
+                update.innerHTML = updateForm
+                })
+        }
+
+        const updateData=(event, id)=>{ // --------------------------------------------------- update
+            event.preventDefault();
+            console.log(id);
+            const editTitle = document.getElementById("editTitle").value;
+            const editDetails = document.getElementById("editDetails").value;
+            const data = {title: editTitle, details: editDetails}
+            fetch(`/update/${id}`,{
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("item successfully updated")
+                if(data){
+                    getAllData();
+                    document.getElementById("update").innerHTML = ''
+                    document.getElementById("update").innerHTML = `<h6> The item is successfully updated </h6>`
+                }
+            })
+        }
+
+        const deleteData=(event , id)=>{ // ------------------------------------------------ delete
+            fetch(`/delete/${id}`,{
+                method: 'DELETE',
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data){
+                    console.log("item deleted")
+                    event.target.parentNode.style.display = 'none';
+                }
+            })
+        }
+
+    </script>
+</body>
+</html>
